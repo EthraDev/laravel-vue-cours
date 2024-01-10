@@ -3,6 +3,7 @@ import {track} from "@vue/reactivity";
 import {tag} from "postcss-selector-parser";
 import MusicLayout from "@/Layouts/MusicLayout.vue";
 import {Link} from "@inertiajs/vue3";
+import Track from "@/Components/Track/Track.vue";
 
 export default {
     name: 'TrackView',
@@ -10,6 +11,7 @@ export default {
     components: {
         MusicLayout,
         Link,
+        Track,
     },
     props:{
         tracks:Array,
@@ -64,7 +66,9 @@ export default {
         </template>
         <template #action>
             <Link 
-            :href="route('tracks.create')">
+            :href="route('tracks.create')"
+            v-if="$page.props.is_admin"
+            >
                 Créer une musique
             </Link>
         </template>
@@ -75,54 +79,16 @@ export default {
             <div>
                 <ul >
                     <div class="grid grid-cols-4 gap-4">
-                        <div
+                        <Track 
                         v-for="track in filteredTracks"
-                        :key="track.uuid"
-                        @click="play(track)"
-                        class="max-w-sm rounded overflow-hidden shadow-lg cursor-pointer"
-                        :class="{'bg-blue-500': currentTrack === track.uuid}"
-                        >
-                        <div class="w-full h-1/2">
-                            <img class="w-full h-full" :src="`/storage/${track.image}`">
-                        </div>
-                        <div class="px-6 py-4">
-                            <div class="font-bold text-xl mb-2">{{ track.title }}</div>
-                        
-                                <small class="text-gray-700 text-base">
-                                    {{ track.artist }}
-                                </small>
-                            </div>
-                        </div>
+                        :key="track.uuid" 
+                        :track="track"
+                        :active="currentTrack === track.uuid"
+                        @played="play"
+                        />
                     </div>
                 </ul>
             </div>
         </template>
     </MusicLayout>
 </template>
-
-<style scoped>
-    ul{
-        list-style: none;
-        padding: 0;
-    }
-    li{
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #ccc;
-        padding: 10px;
-    }
-    li:hover{
-        background: #eee;
-        cursor: pointer;
-    }
-    h3{
-        margin: 0;
-    }
-    p{
-        margin: 0;
-    }
-
-
-
-</style>

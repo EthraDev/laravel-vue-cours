@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
+use App\Models\Track;
 use App\Models\Playlist;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use DebugBar\DataCollector\PDO\TraceablePDO;
+use Illuminate\Validation\ValidationException;
 
 class PlaylistController extends Controller
 {
@@ -13,7 +17,13 @@ class PlaylistController extends Controller
      */
     public function index()
     {
-        return Inertia::render('Playlist/Index');
+
+        $user = request()->user();
+        $playlists = $user->playlists()->withCount('tracks')->get();
+
+        return Inertia::render('Playlist/Index', [
+            'playlists' => $playlists,
+        ]);
     }
 
     /**
@@ -21,7 +31,12 @@ class PlaylistController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Playlist/Create');
+
+        $tracks = Track::where('display', true)->orderBy('title', 'ASC')->get();
+
+        return Inertia::render('Playlist/Create', [
+            'tracks' => $tracks,
+        ]);
     }
 
     /**
@@ -30,8 +45,29 @@ class PlaylistController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            
+            'title' => ['string', 'required', 'max:255'],
+            'tracks' => ['array', 'required'],
+            'tracks.*' => ['string', 'required'],
+            //'tracks.*' => ['string', 'required', 'exists:tracks,uuid'],
         ]);
+
+        $tracks = Track::whereIn('uuid', $request->tracks)->where('display', true)->get();
+
+        if ($tracks->count() !== count($request->tracks)) {
+            throw ValidationException::withMessages([
+                'tracks' => ['Invalid track in array'],
+            ]);
+        }
+
+        $playlist = Playlist::create([
+            'title' => $request->title,
+            'user_id' => $request->user()->id,
+            'uuid' => 'ply-' . Str::uuid(),
+        ]);
+
+        $playlist->tracks()->attach($tracks->pluck('id'));
+
+        return redirect()->route('playlists.index');
     }
 
     /**
@@ -39,8 +75,9 @@ class PlaylistController extends Controller
      */
     public function show(Playlist $playlist)
     {
+
         return Inertia::render('Playlist/Show', [
-            'playlist' => $playlist,
+            'playlist' => $playlist->load('tracks'),
         ]);
     }
 
